@@ -3,54 +3,64 @@
   let container = document.querySelector('.minutes-module-list')
 
   if (!container) {
-    console.error('未找到滚动容器，请检查类名是否正确')
-    return
+    // 增加一个备选容器查找，有的页面滚动容器可能在外层
+    container = document.querySelector('.minutes-module-row')?.parentElement
+    if (!container) {
+      console.error('未找到滚动容器，请检查页面是否加载完成')
+      return
+    }
   }
 
-  console.log('🚀 开始深度抓取，请保持窗口激活状态...')
+  console.log('🚀 开始增强版抓取，请保持窗口激活状态...')
 
   while (true) {
     let prevTop = container.scrollTop
 
-    // 抓取当前 DOM 中所有的行
     document.querySelectorAll('.minutes-module-row').forEach(row => {
       let pid = row
         .querySelector('.paragraph-module_paragraph__79pMd')
         ?.getAttribute('data-pid')
-      let name = row.querySelector('.paragraph-module_speaker-name__afSbd')?.innerText || '未知'
+
+      // 优化后的名字提取逻辑
+      // 1. 尝试直接取 span 里的文本
+      // 2. 如果没有 span，取整个名字编辑框的 innerText
+      let nameElement = row.querySelector('.paragraph-module_speaker-name-edit__7T-ht')
+      let name = '未知'
+      if (nameElement) {
+        name = nameElement.querySelector('span')?.innerText || nameElement.innerText
+        name = name.trim()
+      }
+
       let time = row.querySelector('.minutes-module-p-start-time')?.innerText || ''
       let content = row.querySelector('.minutes-module-sentences')?.innerText || ''
 
-      // 使用 pid 作为 key 自动去重，确保内容完整
       if (pid && !result.has(pid)) {
-        result.set(pid, `[${time}] ${name}: ${content}`)
+        // 过滤空内容和换行噪声
+        if (content.trim() !== '') {
+          result.set(pid, `[${time}] ${name}: ${content.replace(/\n/g, ' ')}`)
+        }
       }
     })
 
-    container.scrollTop += 600 // 滚动跨度
-    await new Promise(r => setTimeout(r, 200)) // 给页面一点渲染时间
+    container.scrollTop += 500 // 适当减小滚动跨度，防止跳过渲染不全的行
+    await new Promise(r => setTimeout(r, 300)) // 略微增加延迟，保证加载稳定性
 
     if (container.scrollTop === prevTop) {
-      // 尝试再滚一次，防止因为加载慢导致的误判
-      container.scrollTop += 5
+      container.scrollTop += 10
       await new Promise(r => setTimeout(r, 200))
       if (container.scrollTop === prevTop) break
     }
   }
 
   const finalData = Array.from(result.values()).join('\n')
-
-  // 打印到控制台，防止复制失败你也能手动复制
   console.log('✅ 抓取完成！总条数：', result.size)
   console.log('----------------内容开始----------------')
   console.log(finalData)
-  console.log('----------------内容结束----------------')
 
-  // 尝试用标准 API 复制
   try {
     await navigator.clipboard.writeText(finalData)
-    console.log('✨ 内容已成功写入剪贴板！可以直接去粘贴了。')
+    console.log('✨ 内容已成功写入剪贴板！')
   } catch (err) {
-    console.log('❌ 自动写入剪贴板失败（浏览器安全限制），请手动从上方控制台输出内容中复制。')
+    console.log('❌ 复制失败，请手动从上方控制台复制。')
   }
 })()
