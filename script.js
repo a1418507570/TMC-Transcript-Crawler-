@@ -17,20 +17,21 @@
     let prevTop = container.scrollTop
 
     document.querySelectorAll('.minutes-module-row').forEach(row => {
+      // 1. 使用模糊匹配获取 pid，防止类名哈希变更失效
       let pid = row
-        .querySelector('.paragraph-module_paragraph__79pMd')
+        .querySelector('[class*="paragraph-module_paragraph"]')
         ?.getAttribute('data-pid')
 
-      // 优化后的名字提取逻辑
-      // 1. 尝试直接取 span 里的文本
-      // 2. 如果没有 span，取整个名字编辑框的 innerText
-      let nameElement = row.querySelector('.paragraph-module_speaker-name-edit__7T-ht')
+      // 2. 优化后的名字提取逻辑：模糊匹配包含 'speaker-name' 的 class
+      let nameElement = row.querySelector('[class*="speaker-name"]')
       let name = '未知'
       if (nameElement) {
+        // 尝试直接取 span 里的文本，如果没有 span，取整个元素的 innerText
         name = nameElement.querySelector('span')?.innerText || nameElement.innerText
         name = name.trim()
       }
 
+      // 3. 获取时间和内容（这两个看起来没有哈希后缀，相对稳定）
       let time = row.querySelector('.minutes-module-p-start-time')?.innerText || ''
       let content = row.querySelector('.minutes-module-sentences')?.innerText || ''
 
